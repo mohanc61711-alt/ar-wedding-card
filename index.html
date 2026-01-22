@@ -9,10 +9,12 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
   <script>
+    // UPDATED COMPONENT: Added 'opacity' support for Smooth Fade-In
     AFRAME.registerComponent('masked-video', {
       schema: {
         src: {type: 'selector'},
-        offset: {type: 'number', default: 0.008} 
+        offset: {type: 'number', default: 0.008},
+        opacity: {type: 'number', default: 1.0} 
       },
       init: function () {
         this.videoEl = this.data.src;
@@ -22,7 +24,8 @@
         this.material = new THREE.ShaderMaterial({
           uniforms: {
             map: {type: 't', value: this.texture},
-            offset: {type: 'f', value: this.data.offset}
+            offset: {type: 'f', value: this.data.offset},
+            opacity: {type: 'f', value: this.data.opacity}
           },
           vertexShader: `
             varying vec2 vUv;
@@ -35,13 +38,14 @@
             precision mediump float;
             uniform sampler2D map;
             uniform float offset;
+            uniform float opacity;
             varying vec2 vUv;
             void main() {
               vec2 uvColor = vec2(vUv.x * 0.5, vUv.y);
               vec4 color = texture2D(map, uvColor);
               vec2 uvMask = vec2(vUv.x * 0.5 + 0.5 + offset, vUv.y);
               vec4 mask = texture2D(map, uvMask);
-              gl_FragColor = vec4(color.rgb, mask.r);
+              gl_FragColor = vec4(color.rgb, mask.r * opacity);
             }
           `,
           transparent: true,
@@ -50,6 +54,11 @@
 
         const mesh = this.el.getObject3D('mesh');
         if (mesh) mesh.material = this.material;
+      },
+      update: function () {
+        if (this.material) {
+            this.material.uniforms.opacity.value = this.data.opacity;
+        }
       },
       tick: function () {
         if (this.texture) this.texture.needsUpdate = true;
@@ -81,32 +90,32 @@
   </div>
 
   <a-assets>
-    <video id="video-top" src="assets/video_top.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
-    <video id="video-middle" src="assets/video_middle.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
-    <video id="video-bottom" src="assets/video_bottom.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="video-top" src="./assets/video_top.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="video-middle" src="./assets/video_middle.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="video-bottom" src="./assets/video_bottom.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
     
-    <video id="vid-fam-intro" src="assets/video_family_intro.mp4" playsinline webkit-playsinline crossorigin="anonymous"></video>
-    <video id="vid-fam-loop" src="assets/video_family_loop.mp4" playsinline webkit-playsinline crossorigin="anonymous"></video>
-    <video id="vid-bride-loop" src="assets/video_bride_family.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="vid-fam-intro" src="./assets/video_family_intro.mp4" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="vid-fam-loop" src="./assets/video_family_loop.mp4" playsinline webkit-playsinline crossorigin="anonymous"></video>
+    <video id="vid-bride-loop" src="./assets/video_bride_family.mp4" loop="true" playsinline webkit-playsinline crossorigin="anonymous"></video>
 
-    <img id="bg-img" src="assets/bg.jpg">
-    <img id="text-top" src="assets/text_top.png">
-    <img id="text-middle" src="assets/text_middle.png">
-    <img id="text-bottom" src="assets/text_bottom.png">
+    <img id="bg-img" src="./assets/bg.jpg">
+    <img id="text-top" src="./assets/text_top.png">
+    <img id="text-middle" src="./assets/text_middle.png">
+    <img id="text-bottom" src="./assets/text_bottom.png">
     
-    <img id="img-text-left" src="assets/text_left.png">
-    <img id="img-text-right" src="assets/text_right.png">
-    <img id="img-arch" src="assets/arch.png">
-    <img id="img-flower" src="assets/flower.png">
+    <img id="img-text-left" src="./assets/text_left.png">
+    <img id="img-text-right" src="./assets/text_right.png">
+    <img id="img-arch" src="./assets/arch.png">
+    <img id="img-flower" src="./assets/flower.png">
     
-    <img id="img-uncle" src="assets/uncle.png"> 
-    <img id="img-uncle-text" src="assets/uncle_text.png">
+    <img id="img-uncle" src="./assets/uncle.png"> 
+    <img id="img-uncle-text" src="./assets/uncle_text.png">
     
-    <audio id="bg-music" src="assets/music.mp3" loop></audio>
+    <audio id="bg-music" src="./assets/music.mp3" loop></audio>
   </a-assets>
 
   <a-scene
-    mindar-image="imageTargetSrc: assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01;"
+    mindar-image="imageTargetSrc: ./assets/targets.mind; filterMinCF:0.0001; filterBeta: 0.01;"
     color-space="sRGB"
     renderer="colorManagement: false; sortObjects: true;"
     vr-mode-ui="enabled: false"
@@ -125,89 +134,86 @@
         <a-entity id="center-panel" position="0 0 0">
           <a-image src="#bg-img" position="0 0 0" width="0.148" height="0.21"></a-image>
 
-          <a-entity id="uncle-group" position="0 0.09 0.03"> 
-            <a-image src="#img-uncle" width="0.07" height="0.07" position="0 0.07 0"></a-image>
-            <a-image src="#img-uncle-text" width="0.10" height="0.025" position="0 0.03 0.001"></a-image>
-          </a-entity>
-          <a-entity 
-            geometry="primitive: plane; width: 0.075; height: 0.075" 
-            position="-0.030 0.06 0.03" 
-            masked-video="src: #video-top; offset: 0.008">
-          </a-entity>
-          <a-image src="#text-top" position="0.035 0.06 0.02" width="0.09" height="0.023"></a-image>
-
-
-          <a-image src="#text-middle" position="-0.030 0.001 0.02" width="0.09" height="0.023"></a-image>
-          <a-entity 
-            geometry="primitive: plane; width: 0.075; height: 0.075" 
-            position="0.035 0.01 0.025" 
-            masked-video="src: #video-middle; offset: 0.025">
+          <a-entity id="uncle-group" position="0 0 0.05" visible="true">
+            <a-image src="#img-uncle" width="0.06" height="0.06" position="0 0.02 0"></a-image>
+            <a-image src="#img-uncle-text" width="0.10" height="0.025" position="0 -0.03 0"></a-image>
           </a-entity>
 
+          <a-entity id="center-content">
+              <a-entity class="fade-vid" geometry="primitive: plane; width: 0.075; height: 0.075" position="-0.030 0.06 0.03" masked-video="src: #video-top; offset: 0.008"></a-entity>
+              <a-image class="fade-img" src="#text-top" position="0.035 0.06 0.02" width="0.09" height="0.023"></a-image>
 
-          <a-entity 
-            geometry="primitive: plane; width: 0.075; height: 0.075" 
-            position="-0.025 -0.06 0.03" 
-            masked-video="src: #video-bottom; offset: 0.008">
+              <a-image class="fade-img" src="#text-middle" position="-0.030 0.001 0.02" width="0.09" height="0.023"></a-image>
+              <a-entity class="fade-vid" geometry="primitive: plane; width: 0.075; height: 0.075" position="0.035 0.01 0.025" masked-video="src: #video-middle; offset: 0.025"></a-entity>
+
+              <a-entity class="fade-vid" geometry="primitive: plane; width: 0.075; height: 0.075" position="-0.025 -0.06 0.03" masked-video="src: #video-bottom; offset: 0.008"></a-entity>
+              <a-image class="fade-img" src="#text-bottom" position="0.030 -0.06 0.02" width="0.09" height="0.023"></a-image>
           </a-entity>
-          <a-image src="#text-bottom" position="0.030 -0.06 0.02" width="0.09" height="0.023"></a-image>
-          
         </a-entity>
 
 
         <a-entity id="left-panel" position="-0.155 0 0.02" rotation="0 15 0">
           <a-image src="#bg-img" position="0 0 0" width="0.148" height="0.21"></a-image>
-          <a-image src="#img-text-left" position="0.002 0.023 0.005" width="0.132" height="0.04" color="#000000" opacity="0.15" material="alphaTest: 0.5"></a-image>
           
-          <a-entity 
-            id="fam-intro-entity"
-            geometry="primitive: plane; width: 0.13; height: 0.13" 
-            position="0.002 -0.050 0.06" 
-            masked-video="src: #vid-fam-intro; offset: 0.00"
-            visible="true">
+          <a-entity id="left-content">
+              <a-image class="fade-img" src="#img-text-left" position="0.002 0.023 0.005" width="0.132" height="0.04" color="#000000" opacity="0.15"></a-image>
+              
+              <a-entity 
+                id="fam-intro-entity"
+                class="fade-vid"
+                geometry="primitive: plane; width: 0.13; height: 0.13" 
+                position="0.002 -0.050 0.03" 
+                masked-video="src: #vid-fam-intro; offset: 0.00"
+                visible="true">
+              </a-entity>
+
+              <a-entity 
+                id="fam-loop-entity"
+                class="fade-vid"
+                geometry="primitive: plane; width: 0.13; height: 0.13" 
+                position="0.002 -0.050 0.03" 
+                masked-video="src: #vid-fam-loop; offset: 0.00"
+                visible="false">
+              </a-entity>
+
+              <a-image class="fade-img" src="#img-arch" position="0.004 -0.002 0.011" width="0.165" height="0.26" color="#000000" opacity="0.05"></a-image>
+              
+              <a-image class="fade-img" src="#img-flower" position="0 0.12 0.02" width="0.008" height="0.008" animation="property: position; to: 0 -0.12 0.02; dur: 8000; easing: linear; loop: true"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="-0.04 0.15 0.015" width="0.007" height="0.007" animation="property: position; to: -0.04 -0.12 0.015; dur: 9000; easing: linear; loop: true; delay: 500"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="0.03 0.14 0.02" width="0.006" height="0.006" animation="property: position; to: 0.03 -0.12 0.02; dur: 7000; easing: linear; loop: true; delay: 1500"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="-0.02 0.13 0.025" width="0.008" height="0.008" animation="property: position; to: -0.02 -0.12 0.025; dur: 6000; easing: linear; loop: true; delay: 2500"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="0.05 0.16 0.015" width="0.007" height="0.007" animation="property: position; to: 0.05 -0.12 0.015; dur: 10000; easing: linear; loop: true; delay: 1000"></a-image>
+
+              <a-image class="fade-img" src="#img-text-left" position="0 0.035 0.03" width="0.132" height="0.04"></a-image>
+              <a-image class="fade-img" src="#img-arch" position="0 0 0.08" width="0.165" height="0.26"></a-image>
           </a-entity>
-
-          <a-entity 
-            id="fam-loop-entity"
-            geometry="primitive: plane; width: 0.13; height: 0.13" 
-            position="0.002 -0.050 0.06" 
-            masked-video="src: #vid-fam-loop; offset: 0.00"
-            visible="false">
-          </a-entity>
-
-          <a-image src="#img-arch" position="0.004 -0.002 0.011" width="0.165" height="0.26" color="#000000" opacity="0.05" material="alphaTest: 0.5"></a-image>
-          
-          <a-image src="#img-flower" position="0 0.12 0.02" width="0.008" height="0.008" material="alphaTest: 0.5" animation="property: position; to: 0 -0.12 0.02; dur: 8000; easing: linear; loop: true"></a-image>
-          <a-image src="#img-flower" position="-0.04 0.15 0.015" width="0.007" height="0.007" material="alphaTest: 0.5" animation="property: position; to: -0.04 -0.12 0.015; dur: 9000; easing: linear; loop: true; delay: 500"></a-image>
-          <a-image src="#img-flower" position="0.03 0.14 0.02" width="0.006" height="0.006" material="alphaTest: 0.5" animation="property: position; to: 0.03 -0.12 0.02; dur: 7000; easing: linear; loop: true; delay: 1500"></a-image>
-          <a-image src="#img-flower" position="-0.02 0.13 0.025" width="0.008" height="0.008" material="alphaTest: 0.5" animation="property: position; to: -0.02 -0.12 0.025; dur: 6000; easing: linear; loop: true; delay: 2500"></a-image>
-          <a-image src="#img-flower" position="0.05 0.16 0.015" width="0.007" height="0.007" material="alphaTest: 0.5" animation="property: position; to: 0.05 -0.12 0.015; dur: 10000; easing: linear; loop: true; delay: 1000"></a-image>
-
-          <a-image src="#img-text-left" position="0 0.035 0.03" width="0.132" height="0.04" material="alphaTest: 0.5"></a-image>
-          <a-image src="#img-arch" position="0 0 0.08" width="0.165" height="0.26" material="alphaTest: 0.5"></a-image>
         </a-entity>
 
 
         <a-entity id="right-panel" position="0.155 0 0.02" rotation="0 -15 0">
           <a-image src="#bg-img" position="0 0 0" width="0.148" height="0.21"></a-image>
-          <a-image src="#img-text-right" position="0.002 0.035 0.002" width="0.132" height="0.04" color="#000000" opacity="0.15" material="alphaTest: 0.5"></a-image>
           
-          <a-entity 
-            geometry="primitive: plane; width: 0.13; height: 0.13" 
-            position="0.002 -0.050 0.06" 
-            masked-video="src: #vid-bride-loop; offset: 0.00">
+          <a-entity id="right-content">
+              <a-image class="fade-img" src="#img-text-right" position="0.002 0.035 0.002" width="0.132" height="0.04" color="#000000" opacity="0.15"></a-image>
+              
+              <a-entity 
+                class="fade-vid"
+                geometry="primitive: plane; width: 0.13; height: 0.13" 
+                position="0.002 -0.050 0.03" 
+                masked-video="src: #vid-bride-loop; offset: 0.00">
+              </a-entity>
+
+              <a-image class="fade-img" src="#img-arch" position="0.004 -0.002 0.011" width="0.165" height="0.26" color="#000000" opacity="0.05"></a-image>
+              
+              <a-image class="fade-img" src="#img-flower" position="0 0.12 0.02" width="0.008" height="0.008" animation="property: position; to: 0 -0.12 0.02; dur: 8200; easing: linear; loop: true"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="0.04 0.15 0.015" width="0.007" height="0.007" animation="property: position; to: 0.04 -0.12 0.015; dur: 8800; easing: linear; loop: true; delay: 600"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="-0.03 0.14 0.02" width="0.006" height="0.006" animation="property: position; to: -0.03 -0.12 0.02; dur: 6500; easing: linear; loop: true; delay: 2000"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="0.02 0.13 0.025" width="0.008" height="0.008" animation="property: position; to: 0.02 -0.12 0.025; dur: 7500; easing: linear; loop: true; delay: 1200"></a-image>
+              <a-image class="fade-img" src="#img-flower" position="-0.05 0.16 0.015" width="0.007" height="0.007" animation="property: position; to: -0.05 -0.12 0.015; dur: 9500; easing: linear; loop: true; delay: 3000"></a-image>
+
+              <a-image class="fade-img" src="#img-text-right" position="0 0.025 0.03" width="0.132" height="0.04"></a-image>
+              <a-image class="fade-img" src="#img-arch" position="0 0 0.08" width="0.165" height="0.26"></a-image>
           </a-entity>
-
-          <a-image src="#img-arch" position="0.004 -0.002 0.011" width="0.165" height="0.26" color="#000000" opacity="0.05" material="alphaTest: 0.5"></a-image>
-          
-          <a-image src="#img-flower" position="0 0.12 0.02" width="0.008" height="0.008" material="alphaTest: 0.5" animation="property: position; to: 0 -0.12 0.02; dur: 8200; easing: linear; loop: true"></a-image>
-          <a-image src="#img-flower" position="0.04 0.15 0.015" width="0.007" height="0.007" material="alphaTest: 0.5" animation="property: position; to: 0.04 -0.12 0.015; dur: 8800; easing: linear; loop: true; delay: 600"></a-image>
-          <a-image src="#img-flower" position="-0.03 0.14 0.02" width="0.006" height="0.006" material="alphaTest: 0.5" animation="property: position; to: -0.03 -0.12 0.02; dur: 6500; easing: linear; loop: true; delay: 2000"></a-image>
-          <a-image src="#img-flower" position="0.02 0.13 0.025" width="0.008" height="0.008" material="alphaTest: 0.5" animation="property: position; to: 0.02 -0.12 0.025; dur: 7500; easing: linear; loop: true; delay: 1200"></a-image>
-          <a-image src="#img-flower" position="-0.05 0.16 0.015" width="0.007" height="0.007" material="alphaTest: 0.5" animation="property: position; to: -0.05 -0.12 0.015; dur: 9500; easing: linear; loop: true; delay: 3000"></a-image>
-
-          <a-image src="#img-text-right" position="0 0.025 0.03" width="0.132" height="0.04" material="alphaTest: 0.5"></a-image>
-          <a-image src="#img-arch" position="0 0 0.08" width="0.165" height="0.26" material="alphaTest: 0.5"></a-image>
         </a-entity>
 
       </a-entity>
@@ -220,14 +226,26 @@
     const bgMusic = document.getElementById('bg-music');
     
     // Videos
-    const videoTop = document.getElementById('video-top');
-    const videoMiddle = document.getElementById('video-middle');
-    const videoBottom = document.getElementById('video-bottom');
+    const allVideos = [
+        document.getElementById('video-top'),
+        document.getElementById('video-middle'),
+        document.getElementById('video-bottom'),
+        document.getElementById('vid-fam-intro'),
+        document.getElementById('vid-fam-loop'),
+        document.getElementById('vid-bride-loop')
+    ];
+    
     const vidFamIntro = document.getElementById('vid-fam-intro');
     const vidFamLoop = document.getElementById('vid-fam-loop');
     const vidBrideLoop = document.getElementById('vid-bride-loop');
     
-    // Entities
+    // Groups
+    const uncleGroup = document.getElementById('uncle-group');
+    const leftPanel = document.getElementById('left-panel');
+    const rightPanel = document.getElementById('right-panel');
+    const leftContent = document.getElementById('left-content');
+    const centerContent = document.getElementById('center-content');
+    const rightContent = document.getElementById('right-content');
     const entFamIntro = document.getElementById('fam-intro-entity');
     const entFamLoop = document.getElementById('fam-loop-entity');
     
@@ -247,42 +265,112 @@
 
     startButton.addEventListener('click', () => {
       bgMusic.play(); bgMusic.pause(); bgMusic.currentTime = 0;
-      [videoTop, videoMiddle, videoBottom, vidFamIntro, vidFamLoop, vidBrideLoop].forEach(vid => {
-        vid.play(); vid.pause(); vid.currentTime = 0;
-      });
+      allVideos.forEach(vid => { vid.play(); vid.pause(); vid.currentTime = 0; });
       startScreen.style.opacity = '0';
       setTimeout(() => { startScreen.style.display = 'none'; }, 500);
     });
 
+    // --- FADE IN HELPER ---
+    function fadeGroupIn(groupElement) {
+        if (!groupElement) return;
+        const images = groupElement.querySelectorAll('.fade-img');
+        images.forEach(img => {
+            img.setAttribute('animation', 'property: components.material.material.opacity; from: 0; to: 1; dur: 800; easing: easeInOutQuad');
+        });
+        const videos = groupElement.querySelectorAll('.fade-vid');
+        videos.forEach(vid => {
+            vid.setAttribute('animation', 'property: components.masked-video.data.opacity; from: 0; to: 1; dur: 800; easing: easeInOutQuad');
+        });
+    }
+
+    // --- RESET OPACITY HELPER ---
+    function resetGroupOpacity(groupElement) {
+        if (!groupElement) return;
+        const images = groupElement.querySelectorAll('.fade-img');
+        images.forEach(img => img.setAttribute('material', 'opacity', 0));
+        const videos = groupElement.querySelectorAll('.fade-vid');
+        videos.forEach(vid => vid.setAttribute('masked-video', 'opacity', 0));
+    }
+
+    // --- MAIN ANIMATION SEQUENCE ---
     arTarget.addEventListener("targetFound", () => {
       bgMusic.play();
       
-      // Play Center
-      videoTop.play();
-      videoMiddle.play();
-      videoBottom.play();
+      // 1. INSTANT RESET (Preparation)
+      // Uncle Center
+      uncleGroup.setAttribute('position', '0 0 0.05');
+      uncleGroup.setAttribute('scale', '1 1 1');
+      uncleGroup.setAttribute('visible', 'true');
       
-      // Play Bride
-      vidBrideLoop.play();
+      // Reset Panels to Center (Stacked behind center card)
+      leftPanel.setAttribute('position', '0 0 0.02'); 
+      rightPanel.setAttribute('position', '0 0 0.02');
 
-      // Reset & Play Groom Sequence
-      vidFamLoop.pause();
-      vidFamLoop.currentTime = 0;
+      // Hide Content (Transparent)
+      resetGroupOpacity(leftContent);
+      resetGroupOpacity(centerContent);
+      resetGroupOpacity(rightContent);
+
+      // Reset Logic
+      vidFamLoop.pause(); vidFamLoop.currentTime = 0;
       entFamLoop.setAttribute('visible', 'false');
-      
       entFamIntro.setAttribute('visible', 'true');
       vidFamIntro.currentTime = 0;
-      vidFamIntro.play();
+
+      // 2. ANIMATION START
+      
+      // T+2.0s: Uncle Moves Up to new Top Position
+      setTimeout(() => {
+        // Updated Target Position to top of card (y=0.09)
+        uncleGroup.setAttribute('animation__move', 'property: position; to: 0 0.09 0.03; dur: 1500; easing: easeInOutQuad');
+        // Uncle stays normal size (or slight scale if needed, currently 1)
+      }, 2000);
+
+      // T+3.0s: Slide LEFT Panel
+      setTimeout(() => {
+        // Slide to x = -0.155
+        leftPanel.setAttribute('animation', 'property: position; to: -0.155 0 0.02; dur: 1200; easing: easeOutBack');
+      }, 3000);
+
+      // T+4.2s: Fade In Left Content + Play
+      setTimeout(() => {
+        fadeGroupIn(leftContent);
+        vidFamIntro.play();
+      }, 4200);
+
+      // T+5.5s: Slide RIGHT Panel
+      setTimeout(() => {
+        // Slide to x = 0.155
+        rightPanel.setAttribute('animation', 'property: position; to: 0.155 0 0.02; dur: 1200; easing: easeOutBack');
+      }, 5500);
+
+      // T+6.7s: Fade In Right Content + Play
+      setTimeout(() => {
+        fadeGroupIn(rightContent);
+        vidBrideLoop.play();
+      }, 6700);
+
+      // T+8.0s: Fade In Center Content + Play
+      setTimeout(() => {
+        fadeGroupIn(centerContent);
+        document.getElementById('video-top').play();
+        document.getElementById('video-middle').play();
+        document.getElementById('video-bottom').play();
+      }, 8000);
+
     });
 
     arTarget.addEventListener("targetLost", () => {
       bgMusic.pause();
-      videoTop.pause();
-      videoMiddle.pause();
-      videoBottom.pause();
-      vidFamIntro.pause();
-      vidFamLoop.pause();
-      vidBrideLoop.pause();
+      allVideos.forEach(vid => vid.pause());
+      
+      // Clean Animations to ensure reset works
+      uncleGroup.removeAttribute('animation__move');
+      leftPanel.removeAttribute('animation');
+      rightPanel.removeAttribute('animation');
+      
+      const allFadeElements = document.querySelectorAll('.fade-img, .fade-vid');
+      allFadeElements.forEach(el => el.removeAttribute('animation'));
     });
   </script>
 
